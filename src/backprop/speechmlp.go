@@ -1278,6 +1278,10 @@ func (mlp *MLP) calculatePSD(audio []float64, PSD []float64, plottype, fftWindow
 				psdMin = PSD[i]
 			}
 		}
+		// Normalize to 1, otherwise the activation function saturates
+		for i := range PSD {
+			PSD[i] /= psdMax
+		}
 		// 10log10 in dB
 	} else if plottype == "log" {
 		for i := range PSD {
