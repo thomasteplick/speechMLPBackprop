@@ -2,7 +2,7 @@
 Neural Network (nn) using multilayer perceptron architecture
 and the backpropagation algorithm.  This is a web application that uses
 the html/template package to create the HTML.
-The URL is http://127.0.0.1:8080/imageMLP.  There are two phases of
+The URL is http://127.0.0.1:8080/speechMLP.  There are two phases of
 operation:  the training phase and the testing phase.  Epochs consising of
 a sequence of examples are used to train the nn.  Each example consists
 of an input vector of (x,y) coordinates and a desired class output.  The nn
@@ -50,10 +50,10 @@ const (
 	b                  = 2.0 / 3.0                    // activation function const
 	K1                 = b / a
 	K2                 = a * a
-	dataDir            = "data/"       // directory for the weights and images
-	maxClasses         = 40            // max number of images to classify
-	maxSamples         = 50000         // max audio wave samples > 4sec * sampleRate
-	classes            = 16            // number of images to classify
+	dataDir            = "data/"       // directory for the weights and audio wav files
+	maxClasses         = 40            // max number of audio wav files to classify
+	maxSamples         = 50000         // max audio wav samples > 4sec * sampleRate
+	classes            = 16            // number of audio wav files to classify
 	rows               = 300           // rows in canvas
 	cols               = 300           // columns in canvas
 	sampleRate         = 12000         // Hz
