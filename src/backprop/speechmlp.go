@@ -56,7 +56,7 @@ const (
 	classes            = 16            // number of audio wav files to classify
 	rows               = 300           // rows in canvas
 	cols               = 300           // columns in canvas
-	sampleRate         = 12000         // Hz
+	sampleRate         = 8000          // Hz
 	twoPi              = 2.0 * math.Pi // 2Pi
 	bitDepth           = 16            // audio wav encoder/decoder sample size
 )
