@@ -13,6 +13,12 @@ input layer.  The chain rule of differential calculus is used to assign credit
 for the errors in the output to the weights in the hidden layers.
 The output layer outputs are subtracted from the desired to obtain the error.
 The user trains first and then tests.
+
+This application classifies audio wav files.  The Power Spectral Density of
+each file is calculated and the magnitude squared is the input to the MLP.
+The MLP classifies the wav file based on its spectral content.  The test
+results are shown.  The user can plot the time domain or frequency domain
+of the wav file.  There are 32 wav files containing speech of a person's name.
 */
 
 package main
@@ -53,7 +59,7 @@ const (
 	dataDir            = "data/"       // directory for the weights and audio wav files
 	maxClasses         = 40            // max number of audio wav files to classify
 	maxSamples         = 50000         // max audio wav samples > 4sec * sampleRate
-	classes            = 16            // number of audio wav files to classify
+	classes            = 32            // number of audio wav files to classify
 	rows               = 300           // rows in canvas
 	cols               = 300           // columns in canvas
 	sampleRate         = 8000          // Hz
@@ -78,6 +84,7 @@ type PlotT struct {
 	TotalCorrect string
 	FFTSize      string // 8192, 4098, 2048, 1024
 	FFTWindow    string // Bartlett, Welch, Hamming, Hanning, Rectangle
+	TimeDomain   bool   // plot time domain, otherwise plot frequency domain
 }
 
 // Type to hold the minimum and maximum data values of the MSE in the Learning Curve
@@ -1027,38 +1034,65 @@ func handleTestingMLP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set default to time domain
+	plot.TimeDomain = true
 	filename := r.FormValue("filename")
 	if len(filename) > 0 {
 		// open and read the audio wav file
 		// create wav decoder, audio IntBuffer, convert to audio FloatBuffer
 		// loop over the FloatBuffer.Data and generate the Spectral Power Density
 		// fill the grid with the PSD values
+		// Option to plot time domain added.
 
-		fftWindow := r.FormValue("fftwindow")
-
-		txt := r.FormValue("fftsize")
-		fftSize, err := strconv.Atoi(txt)
-		if err != nil {
-			fmt.Printf("fftsize int conversion error: %v\n", err)
-			plot.Status = fmt.Sprintf("fftsize int conversion error: %s", err.Error())
-			// Write to HTTP using template and grid
-			if err := tmplTestingMLP.Execute(w, plot); err != nil {
-				log.Fatalf("Write to HTTP output using template with error: %v\n", err)
-			}
-			return
+		// Determine if time or frequency domain plot
+		domain := r.FormValue("domain")
+		// Time Domain
+		if domain == "time" {
+			plot.TimeDomain = true
+		} else {
+			plot.TimeDomain = false
 		}
 
-		err = mlp.processFrequencyDomain(filename, fftWindow, fftSize)
-		if err != nil {
-			fmt.Printf("processFrequencyDomain error: %v\n", err)
-			plot.Status = fmt.Sprintf("processFrequencyDomain error: %v", err.Error())
-			// Write to HTTP using template and grid
-			if err := tmplTestingMLP.Execute(w, plot); err != nil {
-				log.Fatalf("Write to HTTP output using template with error: %v\n", err)
+		if plot.TimeDomain {
+			err := mlp.processTimeDomain(filename)
+			if err != nil {
+				fmt.Printf("processTimeDomain error: %v\n", err)
+				plot.Status = fmt.Sprintf("processTimeDomain error: %v", err.Error())
+				// Write to HTTP using template and grid
+				if err := tmplTestingMLP.Execute(w, plot); err != nil {
+					log.Fatalf("Write to HTTP output using template with error: %v\n", err)
+				}
+				return
 			}
-			return
+			plot.Status += fmt.Sprintf("Time Domain of %s plotted.", filename)
+			// Frequency Domain
+		} else {
+			fftWindow := r.FormValue("fftwindow")
+
+			txt := r.FormValue("fftsize")
+			fftSize, err := strconv.Atoi(txt)
+			if err != nil {
+				fmt.Printf("fftsize int conversion error: %v\n", err)
+				plot.Status = fmt.Sprintf("fftsize int conversion error: %s", err.Error())
+				// Write to HTTP using template and grid
+				if err := tmplTestingMLP.Execute(w, plot); err != nil {
+					log.Fatalf("Write to HTTP output using template with error: %v\n", err)
+				}
+				return
+			}
+
+			err = mlp.processFrequencyDomain(filename, fftWindow, fftSize)
+			if err != nil {
+				fmt.Printf("processFrequencyDomain error: %v\n", err)
+				plot.Status = fmt.Sprintf("processFrequencyDomain error: %v", err.Error())
+				// Write to HTTP using template and grid
+				if err := tmplTestingMLP.Execute(w, plot); err != nil {
+					log.Fatalf("Write to HTTP output using template with error: %v\n", err)
+				}
+				return
+			}
+			plot.Status += fmt.Sprintf("Frequency Domain: PSD of %s plotted.", filename)
 		}
-		plot.Status += fmt.Sprintf("PSD of %s plotted.", filename)
 
 	}
 
@@ -1066,6 +1100,153 @@ func handleTestingMLP(w http.ResponseWriter, r *http.Request) {
 	if err = tmplTestingMLP.Execute(w, mlp.plot); err != nil {
 		log.Fatalf("Write to HTTP output using template with error: %v\n", err)
 	}
+}
+
+// findEndpoints finds the minimum and maximum data values
+func (ep *Endpoints) findEndpoints(input []float64) {
+	ep.ymax = -math.MaxFloat64
+	ep.ymin = math.MaxFloat64
+	for _, y := range input {
+
+		if y > ep.ymax {
+			ep.ymax = y
+		}
+		if y < ep.ymin {
+			ep.ymin = y
+		}
+	}
+}
+
+// processTimeDomain plots the time domain data from audio wav file
+func (mlp *MLP) processTimeDomain(filename string) error {
+
+	var (
+		xscale    float64
+		yscale    float64
+		endpoints Endpoints
+	)
+
+	mlp.plot.Grid = make([]string, rows*cols)
+	mlp.plot.Xlabel = make([]string, xlabels)
+	mlp.plot.Ylabel = make([]string, ylabels)
+
+	// Open the audio wav file
+	f, err := os.Open(filepath.Join(dataDir, filename))
+	if err == nil {
+		defer f.Close()
+		dec := wav.NewDecoder(f)
+		bufInt := audio.IntBuffer{
+			Format: &audio.Format{NumChannels: 1, SampleRate: sampleRate},
+			Data:   make([]int, maxSamples), SourceBitDepth: bitDepth}
+		n, err := dec.PCMBuffer(&bufInt)
+		if err != nil {
+			fmt.Printf("PCMBuffer error: %v\n", err)
+			return fmt.Errorf("PCMBuffer error: %v", err.Error())
+		}
+		bufFlt := bufInt.AsFloatBuffer()
+		//fmt.Printf("%s samples = %d\n", filename, n)
+		mlp.nsamples = n
+
+		endpoints.findEndpoints(bufFlt.Data)
+		// time starts at 0 and ends at #samples*sampling period
+		endpoints.xmin = 0.0
+		// #samples*sampling period, sampling period = 1/sampleRate
+		endpoints.xmax = float64(mlp.nsamples) / float64(sampleRate)
+
+		// EP means endpoints
+		lenEPx := endpoints.xmax - endpoints.xmin
+		lenEPy := endpoints.ymax - endpoints.ymin
+		prevTime := 0.0
+		prevAmpl := bufFlt.Data[0]
+
+		// Calculate scale factors for x and y
+		xscale = float64(cols-1) / (endpoints.xmax - endpoints.xmin)
+		yscale = float64(rows-1) / (endpoints.ymax - endpoints.ymin)
+
+		// This previous cell location (row,col) is on the line (visible)
+		row := int((endpoints.ymax-bufFlt.Data[0])*yscale + .5)
+		col := int((0.0-endpoints.xmin)*xscale + .5)
+		mlp.plot.Grid[row*cols+col] = "online"
+
+		// Store the amplitude in the plot Grid
+		for n := 1; n < mlp.nsamples; n++ {
+			// Current time
+			currTime := float64(n) / float64(sampleRate)
+
+			// This current cell location (row,col) is on the line (visible)
+			row := int((endpoints.ymax-bufFlt.Data[n])*yscale + .5)
+			col := int((currTime-endpoints.xmin)*xscale + .5)
+			mlp.plot.Grid[row*cols+col] = "online"
+
+			// Interpolate the points between previous point and current point;
+			// draw a straight line between points.
+			lenEdgeTime := math.Abs((currTime - prevTime))
+			lenEdgeAmpl := math.Abs(bufFlt.Data[n] - prevAmpl)
+			ncellsTime := int(float64(cols) * lenEdgeTime / lenEPx) // number of points to interpolate in x-dim
+			ncellsAmpl := int(float64(rows) * lenEdgeAmpl / lenEPy) // number of points to interpolate in y-dim
+			// Choose the biggest
+			ncells := ncellsTime
+			if ncellsAmpl > ncells {
+				ncells = ncellsAmpl
+			}
+
+			stepTime := float64(currTime-prevTime) / float64(ncells)
+			stepAmpl := float64(bufFlt.Data[n]-prevAmpl) / float64(ncells)
+
+			// loop to draw the points
+			interpTime := prevTime
+			interpAmpl := prevAmpl
+			for i := 0; i < ncells; i++ {
+				row := int((endpoints.ymax-interpAmpl)*yscale + .5)
+				col := int((interpTime-endpoints.xmin)*xscale + .5)
+				// This cell location (row,col) is on the line (visible)
+				mlp.plot.Grid[row*cols+col] = "online"
+				interpTime += stepTime
+				interpAmpl += stepAmpl
+			}
+
+			// Update the previous point with the current point
+			prevTime = currTime
+			prevAmpl = bufFlt.Data[n]
+
+		}
+
+		// Set plot status if no errors
+		if len(mlp.plot.Status) == 0 {
+			mlp.plot.Status = fmt.Sprintf("file %s plotted from (%.3f,%.3f) to (%.3f,%.3f)",
+				filename, endpoints.xmin, endpoints.ymin, endpoints.xmax, endpoints.ymax)
+		}
+
+	} else {
+		// Set plot status
+		fmt.Printf("Error opening file %s: %v\n", filename, err)
+		return fmt.Errorf("error opening file %s: %v", filename, err)
+	}
+
+	// Set plot status if no errors
+	if len(mlp.plot.Status) == 0 {
+		mlp.plot.Status = fmt.Sprintf("Status: Data plotted from (%.3f,%.3f) to (%.3f,%.3f)",
+			endpoints.xmin, endpoints.ymin, endpoints.xmax, endpoints.ymax)
+	}
+
+	// Construct x-axis labels
+	incr := (endpoints.xmax - endpoints.xmin) / (xlabels - 1)
+	x := endpoints.xmin
+	// First label is empty for alignment purposes
+	for i := range mlp.plot.Xlabel {
+		mlp.plot.Xlabel[i] = fmt.Sprintf("%.2f", x)
+		x += incr
+	}
+
+	// Construct the y-axis labels
+	incr = (endpoints.ymax - endpoints.ymin) / (ylabels - 1)
+	y := endpoints.ymin
+	for i := range mlp.plot.Ylabel {
+		mlp.plot.Ylabel[i] = fmt.Sprintf("%.2f", y)
+		y += incr
+	}
+
+	return nil
 }
 
 // Welch's Method and Bartlett's Method variation of the Periodogram
@@ -1408,8 +1589,6 @@ func (mlp *MLP) processFrequencyDomain(filename, fftWindow string, fftSize int) 
 			prevPSD = PSD[bin]
 
 		}
-
-		// Plot the PSD N/2 float64 values, execute the data on the plotfrequency.html template
 
 		// Set plot status if no errors
 		if len(mlp.plot.Status) == 0 {

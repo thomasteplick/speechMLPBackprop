@@ -10,8 +10,7 @@
 				font-size: 12px;
 				font-family: Arial, Helvetica, sans-serif;
 				width: 100px;
-				text-align: left;
-				padding-right: 10px;
+				text-align: right;
 			}
 
 			.options input {
@@ -150,7 +149,11 @@
 				<li class="links"><a href="http://127.0.0.1:8080/speechMLPtest">Test</a></li>
 			</ul>
 		</nav>
-		<p><b>Spectral Power Density (dB)</b></p>
+		{{if .TimeDomain}}
+		  <p><b>Time Domain (sec)</b></p>
+		{{- else}}
+		  <p><b>Frequency Domain, Spectral Power Density (dB/Hz)</b></p>
+		{{- end}}
 		<div id="outer-container">
 			<div id="ylabel-container">
 				{{range .Ylabel}}
@@ -199,6 +202,20 @@
 									<td>{{.FFTSize}}</td>
 								</tr>
 							</table>
+							<label for="filename">Audio Wav Filename:</label>
+							<input type="file" id="filename" name="filename" required />
+							<br />
+							<input type="radio" name="domain" value="time" id="timedomain" checked />
+							<label for="timedomain">Time Domain</label>
+							<input type="radio" name="domain" value="frequency" id="frequencydomain" />
+							<label for="frequencydomain">Frequency Domain</label>
+							<hr />
+							<h3>Frequency Domain Parameters</h3>
+							<p>Enter frequency domain configuration.  FFTs are averaged with 50% overlap.
+								Zero-padding is used as necessary given the number of segments to average and 
+								the FFT size.  The data is windowed to reduce sidelobe spectral leakage with a 
+								cost of main lobe widening and reduced resolution.                                                         
+							</p>	
 							<label for="fftwindow">FFT Window:</label>
 							<select id="fftwindow" name="fftwindow" required>
 								<option value="Bartlett">Bartlett</option>
@@ -215,9 +232,6 @@
 								<option value="4096">4096</option>
 								<option value="8192" selected>8192</option>
 							</select>
-							<br />
-							<label for="filename">Audio Wav Filename:</label>
-							<input type="file" id="filename" name="filename" required />
 						</div>
 						<input type="submit" value="Submit" />
 						<input type="text" size="100px" id="status" name="status" value="{{.Status}}" readonly />
