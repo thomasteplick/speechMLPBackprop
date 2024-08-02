@@ -14,8 +14,8 @@ by first propagating the inputs forward, layer by layer, to the output layer of 
 difference between the desired and its output and back propagates the errors to the input layer.  The hidden and input layer
 weights are assigned “credit” for the errors by using the chain rule of differential calculus.  Each neuron consists of a
 linear combiner and an activation function.  This program uses the hyperbolic tangent function to serve as the activation function.
-This function is non-linear and differentiable and limits its output to be between -1 and 1.  <b>The purpose of this program is to classify an
-audio waveform stored in a wav audio file</b>.
+This function is non-linear and differentiable and limits its output to be between -1 and 1.  <b>The purpose of this program is to classify a
+speech waveform stored in a wav audio file</b>.
 The user selects the MLP training parameters:
 <li>Epochs</li>
 <li>Learning Rate</li>
@@ -37,7 +37,8 @@ but it eventually settles down after about 100 epochs. An epoch is the forward a
 </p>
 <p>
 When the <i>Test</i> link is clicked, 32 examples are supplied to the MLP  It classifies the audio wav files.
-The test results are tabulated and the actual PSD images are graphed from the wav files that were supplied to the MLP
+The test results are tabulated and the time or frequency domain plots are available for viewing.  Choose the file, the domain,
+the FFT size and window if the frequency domain (spectrum) is wanted to be seen.
 It takes some trial-and-error with the MLP Training Parameters to reduce the MSE to zero.  It is possible to a specify a 
 more complex MLP than necessary and not get good results.  For example, using more hidden layers, a greater layer depth,
 or over training with more examples than necessary may be detrimental to the MLP.  Clicking the <i>Train</i> link starts a new training
