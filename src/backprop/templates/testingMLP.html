@@ -139,6 +139,13 @@
 				min-width: 350px;
 			}
 
+			.fftparam {
+				float: left;
+				text-align: right;
+				width: 200px;
+				margin-right: 10px;
+			}
+
 		</style>
 	</head>
 	<body>
@@ -216,7 +223,7 @@
 								the FFT size.  The data is windowed to reduce sidelobe spectral leakage with a 
 								cost of main lobe widening and reduced resolution.                                                         
 							</p>	
-							<label for="fftwindow">FFT Window:</label>
+							<label for="fftwindow" class="fftparam">FFT Window:</label>
 							<select id="fftwindow" name="fftwindow" required>
 								<option value="Bartlett">Bartlett</option>
 								<option value="Welch">Welch</option>
@@ -225,7 +232,7 @@
 								<option value="Rectangle" selected>Rectangle</option>
 							</select>
 							<br />
-							<label for="fftsize">FFT Size:</label>
+							<label for="fftsize" class="fftparam">FFT Size:</label>
 							<select id="fftsize" name="fftsize" required>
 								<option value="1024">1024</option>
 								<option value="2048">2048</option>

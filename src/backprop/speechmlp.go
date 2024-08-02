@@ -16,6 +16,7 @@ The user trains first and then tests.
 
 This application classifies audio wav files.  The Power Spectral Density of
 each file is calculated and the magnitude squared is the input to the MLP.
+The mean is removed and the magnitude squared is normalized to one.
 The MLP classifies the wav file based on its spectral content.  The test
 results are shown.  The user can plot the time domain or frequency domain
 of the wav file.  There are 32 wav files containing speech of a person's name.
