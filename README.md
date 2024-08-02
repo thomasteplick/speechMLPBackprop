@@ -28,7 +28,8 @@ The user selects the MLP training parameters:
 The <i>Learning Rate</i> is between .01 and .00001.  Each <i>Epoch</i> consists of 32 <i>Training Examples</i>.  
 One training example is a Power Spectral Density (mag^2) and the desired class (0, 1,…, 31).  There are 32 audio wav files and therefore 32 classes.
 The WAV audio files were produced using Windows Voice Recorder which produced m4a files.  The m4a files were converted to wav files using Audacity.
-The sampling rate was 8kHz, PCM 16-bit, mono.
+The conversion sampling rate was 8kHz, PCM 16-bit, mono.  Each wav file is 2-3 seconds long and consists of the author saying a person's name.  The
+person's name is the same as the filename.
 </p>
 <p>
 When the <i>Submit</i> button on the MLP Training Parameters form is clicked, the weights in the network are trained
