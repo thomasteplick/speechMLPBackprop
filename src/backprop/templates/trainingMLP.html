@@ -125,6 +125,13 @@
 				max-width: 350px;
 			}
 
+			.fftparam {
+				float: left;
+				text-align: right;
+				width: 200px;
+				margin-right: 10px;
+			}
+			
 		</style>
 	</head>
 	<body>
@@ -202,7 +209,7 @@
 									<td></td>
 								</tr>
 							</table>
-							<label for="fftwindow">FFT Window:</label>
+							<label for="fftwindow" class="fftparam">FFT Window:</label>
 							<select id="fftwindow" name="fftwindow" required>
 								<option value="Bartlett">Bartlett</option>
 								<option value="Welch">Welch</option>
@@ -211,7 +218,7 @@
 								<option value="Rectangle" selected>Rectangle</option>
 							</select>
 							<br />
-							<label for="fftsize">FFT Size:</label>
+							<label for="fftsize" class="fftparam">FFT Size:</label>
 							<select id="fftsize" name="fftsize" required>
 								<option value="1024">1024</option>
 								<option value="2048">2048</option>
