@@ -435,7 +435,7 @@ func (mlp *MLP) createExamples() error {
 			defer f.Close()
 			// only process classes files
 			if class == classes {
-				return fmt.Errorf("can only process %v png files", classes)
+				return fmt.Errorf("can only process %v wav files", classes)
 			}
 
 			dec := wav.NewDecoder(f)
