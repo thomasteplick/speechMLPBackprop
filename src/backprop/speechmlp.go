@@ -34,6 +34,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -1094,7 +1095,23 @@ func handleTestingMLP(w http.ResponseWriter, r *http.Request) {
 			}
 			plot.Status += fmt.Sprintf("Frequency Domain: PSD of %s plotted.", filename)
 		}
+		
+		// Play the audio wav if fmedia is available in the PATH environment variable
+		fmedia, err := exec.LookPath("fmedia.exe")
+		if err != nil {
+			fmt.Printf("fmedia LookPath error: %v\n", err)
+			// try windows media player
+		} else {
+			fmt.Printf("fmedia is available in path: %s\n", fmedia)
+			cmd := exec.Command(fmedia, filepath.Join(dataDir, filename))
+			stdoutStderr, err := cmd.CombinedOutput()
+			if err != nil {
+				fmt.Printf("stdout, stderr error from running fmedia: %v\n", err)
 
+			} else {
+				fmt.Printf("fmedia output: %s\n", string(stdoutStderr))
+			}
+		}
 	}
 
 	// Execute data on HTML template
