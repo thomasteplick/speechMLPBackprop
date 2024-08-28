@@ -805,7 +805,6 @@ func handleTrainingMLP(w http.ResponseWriter, r *http.Request) {
 // Classify test examples and display test results
 func (mlp *MLP) runClassification() error {
 	// Loop over the training examples
-	mlp.plot.Grid = make([]string, rows*cols)
 	mlp.statistics =
 		Stats{correct: make([]int, classes), classCount: make([]int, classes)}
 	for _, samp := range mlp.samples {
